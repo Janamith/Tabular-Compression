@@ -65,8 +65,11 @@ def computeCondEntropy(col1,col2):
     c2 = np.reshape(col2,(len(col2),1))
     condDist = generateCondDist(1,np.concatenate((c1,c2),axis=1))
     sumH = 0
+    N = len(col1);
     for disti in condDist[:,-1]:
-        sumH += computeEntropy(list(map(tuple,disti)))
+        print(disti)
+        print(len(disti)/N)
+        sumH += (len(disti)/N)*computeEntropy(list(map(tuple,disti))) #p(y)H(X|Y=y)
     return sumH
 #given a vector, returns a vector with the information arithmetically encoded.
 #Also return the dictionary mapping original strings to integers, and the number of unique strings.
