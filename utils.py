@@ -23,8 +23,7 @@ def loadCsvData(fileName):
 
 #given two column indices and the data, compute the mutual information between two features.
 def computeMutualInformation(col1,col2,matrix):
-    return
-    #return I;
+    return computeEntropy(col1) - computeCondEntropy(col1,col2,matrix)
 
 #given a column index, returns a list of lists mapping each unique item in the given column with
 #the data rows that match that item. I.e, if column k in data matrix A is the outcome of a dice roll,
@@ -33,9 +32,9 @@ def computeMutualInformation(col1,col2,matrix):
 #Assumptions: inputs are ndarrays.
 def generateCondDist(column,matrix):
     mapdist = [];
-    for si in set(matrix[:,column]):
+    for si in list(set(matrix[:,column])):
         mapdist += [[si,matrix[matrix[:,column] == si]]]
-    return mapdist;
+    return np.asarray(mapdist);
 
 #given a predicate, returns all rows of the matrix for which the predicate is true.
 def getConditionalDist(predicate, matrix):
@@ -44,17 +43,31 @@ def getConditionalDist(predicate, matrix):
 #given a vector, return a vector "histogram" which contains the probabilities of all unique items.
 #Also return the corresponding item for each probability.
 def getEventProbabilities(vector):
-    return
-    #return vectorP, labels
+    labels = list(set(vector));
+    vectorP = np.zeros(len(labels));
+    for i in range(len(labels)):
+        vectorP[i] = (np.asarray([vi ==labels[i] for vi in vector]).sum())/len(vector)
+    return vectorP, labels
 
-#given a vector of probabilities of each unique event in an event space, return the information entropy.
-def computeEntropy(vectorP):
-    return -(vectorP*np.log2(vectorP)).sum()/len(vectorP)
+#given a vector of events, return the estimated information entropy.
+def computeEntropy(vector):
+    vectorP = getEventProbabilities(vector)[0]
+    return computeEntropyP(vectorP)
 
-def computeJointEntropy(col1,col2,matrix):
-    return
-def computeCondEntropy(col1,col2,matrix):
-    return
+def computeEntropyP(vectorP):
+    return -(vectorP*np.log2(vectorP)).sum()
+
+def computeJointEntropy(col1,col2):
+    return computeEntropy(list(zip(col1,col2)))
+
+def computeCondEntropy(col1,col2):
+    c1 = np.reshape(col1,(len(col1),1))
+    c2 = np.reshape(col2,(len(col2),1))
+    condDist = generateCondDist(1,np.concatenate((c1,c2),axis=1))
+    sumH = 0
+    for disti in condDist[:,-1]:
+        sumH += computeEntropy(list(map(tuple,disti)))
+    return sumH
 #given a vector, returns a vector with the information arithmetically encoded.
 #Also return the dictionary mapping original strings to integers, and the number of unique strings.
 def arithEncode(vector):
