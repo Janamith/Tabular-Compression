@@ -1,6 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import csv
+import collections 
 def loadCsvData(fileName):
     matrix = []
     first = 1
@@ -76,13 +77,39 @@ def computeCondEntropy(col1,col2):
 #given a vector, returns a vector with the information arithmetically encoded.
 #Also return the dictionary mapping original strings to integers, and the number of unique strings.
 def arithEncode(vector):
-    return
+    return 0
     #return dictionary,vecEncoded,N
+
+def MST(MImatrix):
+    def getEdges(MImatrix):
+        edges = []
+        for i in range(MImatrix.shape[0]):
+            for j in range(MImatrix.shape[1]):
+                edges.append((i, j, MImatrix[i][j]))
+        return edges
+
+    sorted_edges = sorted(getEdges(MImatrix), key=lambda tup: tup[2], reverse = True)
+    print (sorted_edges)
+    MST = collections.defaultdict(list)
+    num_edges = 0
+    for edge in sorted_edges:
+        if num_edges == MImatrix.shape[0]-1:
+            break
+        if (edge[1] in MST.keys() or edge[0] == edge[1]):
+            continue
+        MST[edge[0]].append((edge[1], edge[2]))
+        num_edges += 1
+
+    return MST
+
 
 #Plot the mutual information heatmap.
 def plotMutualInfo(mutualI):
     plt.imshow(mutualI, interpolation='nearest', cmap=plt.cm.hot)
     plt.colorbar()
 
-matrix =loadCsvData("connect-4.data");
-print(matrix[0]);
+MImatrix = [[1, 3, 5], [10, 2, 1], [40, 3, 9]]
+MST = MST(np.asarray(MImatrix))
+print(MST)
+#matrix =loadCsvData("connect-4.data");
+#print(matrix[0]);
