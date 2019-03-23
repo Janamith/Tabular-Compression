@@ -2,6 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import csv
 import collections 
+import random 
 def loadCsvData(fileName):
     matrix = []
     first = 1
@@ -102,6 +103,13 @@ def MST(MImatrix):
 
     return MST
 
+def insertRandomVstructure(MST):
+    vertex_1 = random.choice(list(MST.keys())) 
+    vertex_2 = random.choice(list(MST.keys()))
+    while(vertex_1 == vertex_2):
+        vertex_2 = random.choice(list(MST.keys()))
+    MST[vertex_1].append((vertex_2, computeMutualInformation(vertex1, vertex2)))
+
 
 #Plot the mutual information heatmap.
 def plotMutualInfo(mutualI):
@@ -111,5 +119,6 @@ def plotMutualInfo(mutualI):
 MImatrix = [[1, 3, 5], [10, 2, 1], [40, 3, 9]]
 MST = MST(np.asarray(MImatrix))
 print(MST)
+insertRandomVstructure(MST)
 #matrix =loadCsvData("connect-4.data");
 #print(matrix[0]);
