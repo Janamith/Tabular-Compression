@@ -1,6 +1,8 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import csv
+import mst as mst
+
 def loadCsvData(fileName):
     matrix = []
     first = 1
@@ -75,17 +77,29 @@ def computeCondEntropy(col1,col2):
     for disti in condDist[:,-1]:
         sumH += (len(disti)/N)*computeEntropy(list(map(tuple,disti))) #p(y)H(X|Y=y)
     return sumH
+
 def getMutualInfoMatrix(matrix):
     N = np.shape(matrix)[1]
     MI = np.zeros((N,N))
     for i in range(N):
         for j in range(N):
             if MI[j,i] == 0:
-                print((i,j))
+                #print((i,j))
                 MI[i,j] = computeMutualInformation(matrix[:,i],matrix[:,j]) #I(I;J)
             else:
                 MI[i,j] = MI[j,i]
     return MI
+
+def computeCompRatio(bnetdict,mutualIMat):
+    cR = 0
+    for key in [*bnetdict]:
+        cR += mutualIMat[key,key]
+        for dependency in bnetdict[key]: #tuple containing (k,I(key;k))
+            cR-=dependency[1]
+    return cR
+
+def computeDataSize(cR, matrix):
+    return cR*np.shape(matrix)[0]
 
 #given a vector, returns a vector with the information arithmetically encoded.
 #Also return the dictionary mapping original strings to integers, and the number of unique strings.
@@ -97,6 +111,16 @@ def arithEncode(vector):
 def plotMutualInfo(mutualI):
     plt.imshow(mutualI, interpolation='nearest', cmap=plt.cm.hot)
     plt.colorbar()
+    plt.show()
 
 matrix =loadCsvData("connect-4.data");
 print(matrix[0]);
+MI =getMutualInfoMatrix(matrix)
+print(MI)
+treed = mst.MST(MI)
+print(treed)
+cR = computeCompRatio(treed,MI)
+print(cR)
+datasz = computeDataSize(cR,matrix)
+print(datasz);
+plotMutualInfo(MI);
