@@ -2,7 +2,12 @@ import numpy as np
 import matplotlib.pyplot as plt
 import csv
 import mst as mst
+import copy 
+import random
+import networkx as nx
 
+LOAD_MI_MAT = True
+MI_MAT_FILE = "mi_connect4.npy"
 def loadCsvData(fileName):
     matrix = []
     first = 1
@@ -81,6 +86,7 @@ def computeCondEntropy(col1,col2):
 def getMutualInfoMatrix(matrix):
     N = np.shape(matrix)[1]
     MI = np.zeros((N,N))
+    print(N)
     for i in range(N):
         for j in range(N):
             if MI[j,i] == 0:
@@ -89,7 +95,26 @@ def getMutualInfoMatrix(matrix):
             else:
                 MI[i,j] = MI[j,i]
     return MI
+def insertRandomVstructure(MST):
+    MSTcpy = copy.deepcopy(MST);
+    vertex_1 = random.choice(list(MST.keys())) 
+    vertex_2 = random.choice(list(MST.keys()))
+    while(vertex_1 == vertex_2):
+        vertex_2 = random.choice(list(MST.keys()))
+    #print("vertex added from feature %s to feature %s" %(vertex_1,vertex_2))
+    MSTcpy[vertex_1].append((vertex_2, computeMutualInformation(matrix[:,vertex_1], matrix[:,vertex_2])))
+    return MSTcpy, (vertex_1,vertex_2)
 
+def insertVstructure(MST,v1,v2):
+    MSTcpy = copy.deepcopy(MST);
+    vertex_1 = v1
+    vertex_2 = v2 
+    mi = computeMutualInformation(matrix[:,vertex_1],matrix[:,vertex_2]);
+    if (vertex_2,mi) in MSTcpy[vertex_1]:
+        return 0,0
+    #print("vertex added from feature %s to feature %s" %(vertex_1,vertex_2))
+    MSTcpy[vertex_1].append((vertex_2,mi))
+    return MSTcpy, (vertex_1,vertex_2)
 def computeCompRatio(bnetdict,mutualIMat):
     cR = 0
     for key in [*bnetdict]:
@@ -110,17 +135,72 @@ def arithEncode(vector):
 #Plot the mutual information heatmap.
 def plotMutualInfo(mutualI):
     plt.imshow(mutualI, interpolation='nearest', cmap=plt.cm.hot)
-    plt.colorbar()
-    plt.show()
+    f = plt.colorbar()
+    #f = plt.figure();
+    plt.title("Connect 4 Dataset Mutual Information Between Columns");
+    f.set_ticklabels("Column Number")
+    f.set_label("Mutual Information (bits)")
+    #plt.show()
+    plt.savefig("mutual_I.png");
 
 matrix =loadCsvData("connect-4.data");
-print(matrix[0]);
-MI =getMutualInfoMatrix(matrix)
-print(MI)
+if LOAD_MI_MAT == True: 
+    MI = np.load(MI_MAT_FILE);
+else: 
+    MI =getMutualInfoMatrix(matrix)
+    np.save(MI_MAT_FILE,MI);
+#plotMutualInfo(MI);
+HBase = 0
+for n in range (np.shape(matrix)[1]):
+    HBase += computeEntropy(matrix[:,n])
+print("baseline compression rate/sum of entropies = %f" % HBase);
+
 treed = mst.MST(MI)
-print(treed)
 cR = computeCompRatio(treed,MI)
-print(cR)
+print("MST comp rate: %f " % cR)
 datasz = computeDataSize(cR,matrix)
-print(datasz);
-plotMutualInfo(MI);
+mstkeys = [*treed];
+mstedges = []
+elabels={}
+ml = {}
+for k in mstkeys:
+    for e in treed[k]:
+        mstedges.append((k,e[0]))
+        ml[(k,e[0])] = 1
+        elabels[(k,e[0])]="%.3f" % e[1]
+print(mstkeys)
+print(mstedges)
+
+G = nx.Graph()
+G.add_nodes_from(mstkeys);
+G.add_edges_from(mstedges)
+nx.draw(G,nx.kamada_kawai_layout(G),with_labels=True);
+nx.draw_networkx_edge_labels(G,nx.kamada_kawai_layout(G),edge_labels=elabels)
+plt.savefig("mst_graph.png")
+plt.show();
+#plt.figure();
+#G.add_edges_from([(7,8)])
+#nx.draw(G,nx.kamada_kawai_layout(G),with_labels=True);
+#nx.draw_networkx_edge_labels(G,nx.kamada_kawai_layout(G),edge_labels=elabels)
+#plt.show();
+#plt.savefig("mst_Vopt_graph.png")
+print("MST dataSz: %f " % datasz);
+minCR = HBase
+minDataSz =HBase*np.shape(matrix)[0]
+minV = ''
+for i in range(np.shape(matrix)[1]):
+    for j in range(np.shape(matrix)[1]):
+        if i != j:
+            MSTi, vi =  insertVstructure(treed,i,j)
+            if MSTi ==0: continue
+            cr =computeCompRatio(MSTi,MI)
+            if cr < minCR: 
+                minV = vi
+                minCR = cr
+                minDataSz = computeDataSize(minCR,matrix)
+        #print("comp rate: %f " % cr)
+        #print("dataSz: %f " % computeDataSize(cr,matrix))
+print("best V structure: ",minV)
+print("compression rate: %f" % minCR)
+print("data size: %f" % minDataSz)
+
